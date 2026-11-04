@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Computer Vision 8 post read</title>
+<meta name="description" content="Computer Vision 8 post read: single-stage detectors, SSD, YOLO and focal loss.">
+<style>
+:root{
+  --v950:#1e0b4b;--v900:#2e1065;--v800:#4c1d95;--v700:#6d28d9;--v600:#7c3aed;--v500:#8b5cf6;
+  --v400:#a78bfa;--v300:#c4b5fd;--v200:#ddd6fe;--v100:#ede9fe;--v50:#f5f3ff;
+  --ink:#1f1637;--muted:#5a4f78;--line:#e4dcfa;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:#fff;color:var(--ink);font:17px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;line-height:1.2;color:var(--v900);margin:0}
+h2{font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0 0 .7rem}
+h3{font-size:1.35rem;margin:2.2rem 0 .5rem}
+h4{font-size:1.02rem;margin:1.2rem 0 .3rem;color:var(--v800)}
+p{margin:.75rem 0}
+p,ul,ol{max-width:70ch}
+li{margin:.3rem 0}
+a{color:var(--v700)}
+code{font:.88em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--v100);color:var(--v800);padding:.1em .35em;border-radius:5px}
+:focus-visible{outline:3px solid var(--v500);outline-offset:2px;border-radius:4px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-999px;top:8px;background:var(--v900);color:#fff;padding:.5rem 1rem;z-index:100;border-radius:8px}
+.skip:focus{left:8px}
+
+/* header */
+.top{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .in{max-width:1040px;margin:0 auto;padding:.6rem 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font:700 1.05rem Georgia,serif;color:var(--v900);text-decoration:none;display:flex;align-items:center;gap:10px}
+.brand i{width:18px;height:18px;border-radius:4px;background:conic-gradient(var(--v700) 25%,var(--v300) 0 50%,var(--v500) 0 75%,var(--v900) 0);display:inline-block}
+#bar{height:3px;background:var(--v600);width:0;transition:width .1s}
+.btn{font:600 .9rem system-ui,sans-serif;background:var(--v700);color:#fff;border:2px solid var(--v700);border-radius:10px;padding:7px 14px;cursor:pointer}
+.btn:hover{background:var(--v800);border-color:var(--v800)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--v700)}
+.btn.ghost:hover{background:var(--v50)}
+.btn.sm{padding:4px 10px;font-size:.82rem}
+#toc{position:absolute;right:max(20px,calc(50% - 520px));top:100%;width:min(360px,calc(100vw - 40px));max-height:70vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 40px -12px rgba(46,16,101,.35);padding:10px}
+#toc ol{list-style:none;margin:0;padding:0;max-width:none}
+#toc a{display:flex;gap:10px;padding:7px 10px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:.95rem;line-height:1.35}
+#toc a b{color:var(--v600);font-variant-numeric:tabular-nums;min-width:1.6em}
+#toc a:hover,#toc a[aria-current=true]{background:var(--v100);color:var(--v900)}
+#toc a[aria-current=true]{font-weight:700}
+
+/* hero */
+.hero{color:#fff;padding:84px 20px 92px;background-color:var(--v900);
+  background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(135deg,var(--v950),var(--v700));
+  background-size:30px 30px,30px 30px,100% 100%}
+.hero .in{max-width:900px;margin:0 auto}
+.eyebrow{font:700 .78rem system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--v200)}
+.hero h1{color:#fff;font-size:clamp(2.3rem,6.5vw,4rem);margin:.4rem 0 1rem}
+.hero p{font-size:1.2rem;color:var(--v100);max-width:56ch}
+.hero .cta{margin-top:1.6rem;display:flex;gap:12px;flex-wrap:wrap}
+.hero .btn{background:#fff;color:var(--v800);border-color:#fff}
+.hero .btn.ghost{background:transparent;color:#fff;border-color:var(--v300)}
+
+/* sections */
+main section{padding:60px 20px;border-bottom:1px solid var(--line)}
+main section:nth-of-type(even){background:var(--v50)}
+main section>.in{max-width:940px;margin:0 auto}
+.kicker{display:inline-block;font:700 .78rem system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--v600);margin-bottom:.35rem}
+.callout{border-left:5px solid var(--v600);background:var(--v100);padding:12px 18px;border-radius:0 14px 14px 0;margin:1.2rem 0;max-width:70ch}
+.callout p{margin:.3rem 0}
+.note{font-size:.88rem;color:var(--muted)}
+.formula{font:italic 1.2rem Georgia,serif;text-align:center;background:var(--v900);color:#fff;border-radius:14px;padding:14px 18px;margin:16px 0;overflow-x:auto;max-width:none}
+.formula small{display:block;font:.8rem system-ui;color:var(--v200);font-style:normal;margin-top:4px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0}
+.card{border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:#fff}
+.card h4{margin:0 0 .3rem;font-size:1.05rem;color:var(--v900)}
+.card p{margin:.3rem 0;font-size:.97rem}
+.card.dark{background:var(--v900);color:#fff;border-color:var(--v900)}
+.card.dark h4{color:#fff}
+.tag{display:inline-block;font:700 .72rem system-ui;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--v100);color:var(--v800)}
+
+/* widgets */
+.widget{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin:24px 0;box-shadow:0 8px 26px -14px rgba(76,29,149,.35)}
+.wtag{display:inline-block;font:700 .7rem system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--v700);background:var(--v100);padding:5px 10px;border-radius:999px;margin-bottom:8px}
+.wtitle{font:700 1.12rem/1.3 Georgia,serif;color:var(--v900);margin:0 0 4px}
+.wdesc{color:var(--muted);font-size:.93rem;margin:0 0 12px;max-width:none}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:8px 0 14px}
+.seg{display:inline-flex;flex-wrap:wrap}
+.seg button{font:600 .85rem system-ui,sans-serif;border:1.5px solid var(--v300);background:#fff;color:var(--v800);padding:6px 12px;cursor:pointer;margin-left:-1.5px}
+.seg button:first-child{border-radius:10px 0 0 10px;margin-left:0}
+.seg button:last-child{border-radius:0 10px 10px 0}
+.seg button:only-child{border-radius:10px}
+.seg button:hover{background:var(--v50)}
+.seg button[aria-pressed=true]{background:var(--v700);border-color:var(--v700);color:#fff;position:relative;z-index:1}
+select,input[type=number]{font:inherit;font-size:.9rem;padding:6px 8px;border:1.5px solid var(--v300);border-radius:8px;background:#fff;color:var(--v900)}
+input[type=number]{width:92px}
+input[type=range]{accent-color:var(--v600)}
+label.sel,label.chk,label.fld{font-size:.88rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+label.fld{flex-direction:column;align-items:flex-start;gap:3px;font-weight:600}
+.mat{display:grid;gap:3px;grid-template-columns:repeat(var(--c),minmax(0,1fr))}
+.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;text-align:center;font:600 clamp(.6rem,1.7vw,.88rem)/1.1 ui-monospace,Menlo,monospace;border-radius:6px;background:var(--v50);color:var(--v900);border:1.5px solid var(--v200);padding:0;margin:0}
+button.cell{cursor:pointer}
+button.cell:hover{border-color:var(--v700)}
+.cell.win{outline:3px solid var(--v900);outline-offset:-2px;z-index:1}
+.cell.pad{background:repeating-linear-gradient(45deg,#fff,#fff 4px,var(--v100) 4px,var(--v100) 8px);color:var(--muted);border-style:dashed}
+.cell.neg{border:2px dashed var(--v900)}
+.cell.cur{outline:3px solid var(--v900);outline-offset:-2px}
+.cell.on{background:var(--v700);color:#fff;border-color:var(--v700)}
+.cell.ghost{border:2px dashed var(--v700)}
+.cell.sel{outline:3px solid var(--v900);outline-offset:-2px}
+.bars{display:grid;gap:6px}
+.brow{display:grid;grid-template-columns:minmax(78px,150px) 1fr 62px;gap:10px;align-items:center;font-size:.9rem}
+.bl{font-weight:600;color:var(--v900)}
+.bt{background:var(--v100);border-radius:6px;height:16px;overflow:hidden;display:block}
+.bf{display:block;height:100%;background:var(--v700);border-radius:6px;transition:width .25s}
+.bv{font-variant-numeric:tabular-nums;text-align:right;color:var(--muted)}
+.readout{margin-top:12px;padding:10px 14px;background:var(--v50);border:1px solid var(--line);border-radius:12px;font-size:.93rem;max-width:none}
+.readout b{color:var(--v900)}
+.fig{margin:14px 0}
+.fig img{max-width:100%;height:auto;border-radius:12px;border:1px solid var(--line);display:block;margin:0 auto}
+.fig figcaption{font-size:.85rem;color:var(--muted);text-align:center;margin-top:6px}
+.fb{display:none;padding:18px;border:2px dashed var(--v300);border-radius:12px;color:var(--muted);font-size:.9rem;text-align:center}
+.fig.broken .fb{display:block}
+.fig.broken img{display:none}
+.duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+
+/* tabs */
+.tabs{margin:18px 0}
+.tablist{display:flex;gap:4px;flex-wrap:wrap;border-bottom:2px solid var(--line);margin-bottom:14px}
+.tablist button{font:600 .92rem system-ui,sans-serif;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:9px 14px;cursor:pointer;margin-bottom:-2px;border-radius:8px 8px 0 0}
+.tablist button:hover{color:var(--v800);background:var(--v50)}
+.tablist button[aria-selected=true]{color:var(--v800);border-bottom-color:var(--v700);background:var(--v100)}
+[role=tabpanel]:focus-visible{outline-offset:6px}
+
+/* code + tables */
+details.code{border:1px solid var(--line);border-radius:12px;margin:14px 0;background:#fff;overflow:hidden}
+details.code summary{cursor:pointer;padding:10px 14px;font:600 .9rem system-ui;color:var(--v800);background:var(--v50)}
+details.code[open] summary{border-bottom:1px solid var(--line)}
+pre{margin:0;padding:14px 16px;overflow:auto;background:var(--v950);color:var(--v100);font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.tw{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--v100);color:var(--v900);font-weight:700}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+
+/* specific widgets */
+.pxwrap{display:grid;grid-template-columns:minmax(0,420px) 1fr;gap:20px;align-items:start}
+.pxgrid{gap:2px}
+.pxgrid .cell{border-radius:3px;border:0;font-size:clamp(.5rem,1.4vw,.68rem)}
+.vrow{display:flex;align-items:center;gap:8px;margin:5px 0}
+.vl{font-weight:800;color:var(--v800);width:44px;font-size:.82rem}
+.vcells{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:3px;flex:1}
+.vcells .cell{aspect-ratio:auto;height:34px;font-size:clamp(.55rem,1.5vw,.78rem)}
+.flat{display:grid;grid-template-columns:130px 1fr;gap:22px;align-items:start}
+.flat .mat{max-width:130px}
+.srow{display:grid;grid-template-columns:72px minmax(90px,1fr) 42px minmax(90px,1fr) 58px;gap:10px;align-items:center;margin:8px 0;font-size:.9rem}
+.srow input{width:100%}
+.zv{font-variant-numeric:tabular-nums;color:var(--muted);text-align:right}
+.mx{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;align-items:start}
+.layers{list-style:none;margin:0;padding:0;max-width:none;display:grid;gap:6px}
+.lay{width:100%;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.9fr) minmax(0,1fr);gap:8px;align-items:center;text-align:left;font:inherit;font-size:.86rem;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink)}
+.lay:hover{border-color:var(--v400)}
+.lay[aria-pressed=true]{border-color:var(--v700);background:var(--v50);box-shadow:inset 4px 0 0 var(--v700)}
+.lay .ln{font-weight:700;color:var(--v900)}
+.lay .ls{color:var(--muted);font-variant-numeric:tabular-nums}
+.lay .lp{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.lay .lb{grid-column:1/-1;height:6px;background:var(--v100);border-radius:4px;overflow:hidden}
+.lay .lb i{display:block;height:100%;background:var(--v600)}
+.ldetail{background:var(--v900);color:#fff;border-radius:14px;padding:16px 18px;position:sticky;top:90px}
+.ldetail h4{color:#fff;margin:0 0 6px}
+.ldetail p{margin:.4rem 0;font-size:.92rem;color:var(--v100)}
+.ldetail code{background:rgba(255,255,255,.14);color:#fff}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin:6px 0}
+.legend i{display:inline-block;width:26px;height:0;border-top:3px solid var(--v900);vertical-align:middle;margin-right:6px}
+.plot{touch-action:pan-y;outline-offset:2px}
+.plot svg{width:100%;height:auto;display:block}
+.cx{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,.7fr) minmax(0,.7fr) minmax(0,1fr);gap:16px;align-items:start}
+.pl{font:700 .78rem system-ui;color:var(--v800);margin-bottom:6px;letter-spacing:.02em}
+.sum{margin-top:8px;font-size:.95rem}
+.stepbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:14px}
+.stepbar input[type=range]{flex:1;min-width:140px}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:#fff}
+.stat .k{font:700 .74rem system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font:700 1.7rem Georgia,serif;color:var(--v900)}
+.stat .s{font-size:.85rem;color:var(--muted)}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vs div{padding:8px 10px;border-radius:10px;background:var(--v50)}
+.vs div.win{background:var(--v900);color:#fff}
+.vs small{display:block;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
+.vs b{font:700 1.3rem Georgia,serif}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0;max-width:none}
+.flow span{background:#fff;border:1.5px solid var(--v300);color:var(--v900);padding:8px 12px;border-radius:10px;font:600 .9rem system-ui}
+.flow i{color:var(--v600);font-style:normal;font-weight:800}
+.cortex{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:stretch}
+.cortex .rl{font:700 .75rem system-ui;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center}
+.cortex button{font:inherit;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 8px;cursor:pointer;text-align:center;color:var(--ink);font-size:.84rem}
+.cortex button:hover{border-color:var(--v400)}
+.cortex button[aria-pressed=true]{background:var(--v900);color:#fff;border-color:var(--v900)}
+.cortex svg{width:40px;height:40px;display:block;margin:0 auto 4px}
+.cortex button b{display:block;font-size:.86rem}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:12px;padding:10px 14px;margin:8px 0;cursor:pointer;background:#fff}
+.opt:hover{border-color:var(--v400)}
+.opt input{margin-top:5px;accent-color:var(--v700)}
+.opt.ok{background:var(--v900);color:#fff;border-color:var(--v900)}
+.opt.bad{border:2px dashed var(--v900);background:var(--v50)}
+.opt .mk{margin-left:auto;font-weight:700;font-size:.82rem;white-space:nowrap}
+fieldset{border:0;padding:0;margin:0}
+legend{font-weight:700;color:var(--v900);padding:0;margin-bottom:6px}
+.qa{display:flex;gap:10px;margin-top:10px}
+footer{background:var(--v950);color:var(--v200);text-align:center;padding:36px 20px;font:700 1rem Georgia,serif}
+footer small{display:block;font:.8rem system-ui;opacity:.7;margin-top:4px}
+
+@media (max-width:820px){
+  .pxwrap,.flat,.mx{grid-template-columns:1fr}
+  .cx{grid-template-columns:1fr 1fr}
+  .cx .pn-in{grid-column:1/-1}
+  .ldetail{position:static}
+  .cortex{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .cortex .rl{grid-column:1/-1}
+}
+@media (max-width:640px){
+  body{font-size:16px}
+  main section{padding:44px 16px}
+  .srow{grid-template-columns:72px 1fr 42px}
+  .srow .bt{grid-column:2}
+  .srow .bv{grid-column:3}
+  .brow{grid-template-columns:84px 1fr 54px}
+}
+/* L2 additions */
+.maps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.maps .mat{gap:2px}
+.maps .cell{border-radius:3px;border:0;font-size:clamp(.5rem,1.4vw,.72rem)}
+.mapbtn{border:2px solid transparent;background:none;border-radius:10px;padding:4px;cursor:pointer;text-align:left;font:inherit}
+.mapbtn:hover{border-color:var(--v300)}
+.mapbtn[aria-pressed=true]{border-color:var(--v700);background:var(--v50)}
+.outrow{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.outrow .cell{width:34px;height:34px;aspect-ratio:auto;border-radius:5px;font-size:.7rem}
+.neurons{gap:3px;max-width:420px}
+.neurons .cell{border-radius:4px;border:0;font-size:0}
+.neurons .cell.on{background:var(--v700)}
+.neurons .cell.off{background:repeating-linear-gradient(45deg,#fff,#fff 3px,var(--v200) 3px,var(--v200) 6px);border:1.5px dashed var(--v300)}
+.meter{height:12px;background:var(--v100);border-radius:6px;overflow:hidden;margin:4px 0 10px}
+.meter i{display:block;height:100%;background:var(--v700);transition:width .2s}
+.meter.warn i{background:var(--v900)}
+.mrow{font-size:.9rem;color:var(--ink)}
+.mrow b{color:var(--v900)}
+.lsteps{list-style:none;counter-reset:s;padding:0;margin:12px 0;max-width:none;display:grid;gap:8px}
+.lsteps li{counter-increment:s;display:flex;gap:12px;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;background:#fff;margin:0}
+.lsteps li::before{content:counter(s);flex:none;width:28px;height:28px;border-radius:50%;background:var(--v700);color:#fff;display:flex;align-items:center;justify-content:center;font:700 .85rem system-ui}
+.lsteps li.skip{border-style:dashed;background:var(--v50);color:var(--muted)}
+.lsteps li.skip::before{background:var(--v300)}
+.lsteps li .tg{margin-left:auto;font:700 .72rem system-ui;letter-spacing:.06em;text-transform:uppercase;color:var(--v800);background:var(--v100);padding:3px 8px;border-radius:999px;white-space:nowrap}
+.augg{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0}
+.augg figure{margin:0;text-align:center}
+.augg svg{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:10px;background:#fff}
+.augg figcaption{font:600 .78rem system-ui;color:var(--muted);margin-top:4px}
+.vols{width:100%;height:auto;display:block;margin:6px 0 10px}
+.vols g[role=button]{cursor:pointer}
+.vols g:focus-visible{outline:none}
+.vols g:focus-visible rect:first-of-type{stroke-width:4}
+.rbars{display:grid;gap:8px}
+.rb{display:grid;grid-template-columns:minmax(120px,210px) 1fr 64px;gap:10px;align-items:center;text-align:left;font:inherit;font-size:.9rem;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink);width:100%}
+.rb:hover{border-color:var(--v400)}
+.rb[aria-pressed=true]{border-color:var(--v700);background:var(--v50);box-shadow:inset 4px 0 0 var(--v700)}
+.rb .bl{font-weight:700}
+.rb .bt{height:18px;position:relative}
+.rb .zone{position:absolute;top:0;bottom:0;left:0;background:repeating-linear-gradient(45deg,var(--v200),var(--v200) 3px,#fff 3px,#fff 6px);opacity:.9}
+.rb .bf{position:relative}
+.mt td,.mt th{text-align:center;padding:6px 8px}
+.mt td:first-child,.mt th:first-child{text-align:left}
+.yes{font-weight:800;color:var(--v700)}
+.no{color:var(--v300)}
+pre.prompt{white-space:pre-wrap;word-break:break-word;border-radius:12px;font-size:13px}
+.hint{font-size:.85rem;color:var(--muted)}
+.cardlink{display:inline-block;margin-top:.4rem;font-weight:700;font-size:.9rem}
+@media (max-width:640px){
+  .maps{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rb{grid-template-columns:90px 1fr 54px}
+}
+td.hl{background:var(--v100);font-weight:700}
+label.sel{flex-wrap:wrap;max-width:100%}
+label.sel select{max-width:100%;min-width:0}
+@media (max-width:640px){label.sel{width:100%}label.sel select{width:100%}}
+.yes{white-space:nowrap}
+@media (max-width:640px){.plot svg text{font-size:19px}.vols text{font-size:18px}}
+p code,li code,td code{overflow-wrap:anywhere}
+@media (max-width:640px){.widget .tw th,.widget .tw td{padding:6px 5px;font-size:.74rem}}
+.readout pre{overflow-x:auto;max-width:100%}
+.seg{max-width:100%;flex-wrap:wrap}
+.brow{grid-template-columns:minmax(70px,150px) minmax(0,1fr) auto}.brow .bl{overflow-wrap:anywhere}
+.readout{overflow-wrap:anywhere}
+
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="in">
+    <a class="brand" href="#top"><i aria-hidden="true"></i>Computer Vision 8 post read</a>
+    <button class="btn ghost sm" id="tocBtn" aria-expanded="false" aria-controls="toc">Contents</button>
+  </div>
+  <div id="bar" aria-hidden="true"></div>
+  <nav id="toc" aria-label="Contents" hidden><ol></ol></nav>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <div class="eyebrow">Deep Learning · Computer Vision</div>
+    <h1>Computer Vision 8 post read</h1>
+    <p>How does a self-driving car detect pedestrians, vehicles and traffic lights in real time? Single-stage detectors skip the region-proposal step and predict boxes and classes in one pass. We study SSD and YOLO, decode a pre-trained YOLOv5 by hand, test it under bad conditions, and see why class imbalance is their weak spot and how focal loss fixes it.</p>
+    <div class="cta"><a class="btn" href="#problem">Start reading</a><a class="btn ghost" href="#yolo">Jump to YOLO</a></div>
+  </div>
+</div>
+
+<main id="main">
+
+<section id="problem" data-title="Why single-stage detectors">
+<div class="in">
+  <span class="kicker">01</span>
+  <h2>Why single-stage detectors?</h2>
+  <p>You are a Machine Learning Engineer on Tesla’s Autonomous Driving team, building a prototype that detects and locates traffic lights and stop signs, other vehicles (cars, bicycles, trucks), pedestrians and animals on the road, using the dashboard camera. The detector must run inference <b>in real time on commodity hardware (CPU only)</b> and be accurate enough to be safe.</p>
+  <div data-fig="prob"></div>
+  <h3>Problems with R-CNNs</h3>
+  <div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">
+    <div class="card"><span class="tag">1</span><h4>Training has multiple phases</h4><p>The Region Proposal Network is trained to propose boxes, and the detector that classifies them is trained separately. Faster R-CNN uses a 4-step alternating scheme (joint training is also possible).</p></div>
+    <div class="card"><span class="tag">2</span><h4>Training is slow</h4><p>Several moving parts, the RPN, the ROI pooling module and the final classifier, each add to training time.</p></div>
+    <div class="card"><span class="tag">3</span><h4>Inference is too slow</h4><p>Faster R-CNN with a VGG-16 backbone runs at about 5 fps on a GPU: far from real time on CPU-only hardware.</p></div>
+  </div>
+  <h3>The single-stage idea</h3>
+  <p>Single-stage detectors have <b>no region proposal step</b>. They treat detection as a <b>regression problem</b>: one forward pass over the image directly outputs class probabilities and bounding-box coordinates. The two well-known families are <b>SSD</b> (Single Shot MultiBox Detector) and <b>YOLO</b> (You Only Look Once).</p>
+  <div data-fig="ss"></div>
+</div>
+</section>
+
+<section id="ssd" data-title="SSD">
+<div class="in">
+  <span class="kicker">02</span>
+  <h2>SSD: Single Shot MultiBox Detector</h2>
+  <p>(<a href="https://arxiv.org/abs/1512.02325">Paper</a>.) The core idea: a CNN takes an image and produces detections at different <b>scales, shapes and locations</b> in one pass.</p>
+  <div data-fig="ssd1"></div>
+  <h3>Architecture</h3>
+  <ul>
+    <li>SSD builds on <b>VGG-16</b> (the base network), truncated after conv5_3.</li>
+    <li>The fully connected layers fc6 and fc7 become convolutional layers; fc8 and the dropout layers are removed.</li>
+    <li>New convolutional layers are added on top: these extra layers are what make SSD work.</li>
+    <li>Every layer is convolutional, so the network is <b>fully convolutional</b>.</li>
+  </ul>
+  <p>The feature maps shrink with depth, as in a standard CNN, and several of them feed the detection step directly. So SSD extracts features at <b>multiple scales</b>: the large, early maps help with small objects, the small, deep maps with large objects.</p>
+  <h3>Locations, shapes and scales in one pass</h3>
+  <div data-fig="ssd2"></div>
+  <div class="vs">
+    <div><b>Locations: grids</b><p>The first two dimensions of a feature map can be read as a grid laid over the input image (a 5×5 map divides the image into a 5×5 grid, a 3×3 map into 3×3). Objects can be detected at every location of every map.</p></div>
+    <div class="win"><b>Shapes: default boxes</b><p>Predefined boxes of several scales and aspect ratios, centred on each feature-map cell. SSD300 uses 4 or 6 per cell: 4 on conv4_3, conv10_2 and conv11_2, 6 on the other layers.</p></div>
+  </div>
+  <div class="widget" data-w="ssd"></div>
+  <p>The detection module runs a multiclass classifier and a bounding-box regressor on each selected feature map, so results cover different shapes, scales and locations. To try SSD in PyTorch, see <code>torchvision.models.detection.ssd300_vgg16</code> and <code>ssdlite320_mobilenet_v3_large</code>.</p>
+  <div data-fig="ssd3"></div>
+  <details class="code"><summary>Code: verify 8,732 against torchvision’s SSD300</summary><pre data-code="ssd"></pre></details>
+  <h3>MultiBox regression</h3>
+  <p>SSD’s box regression is inspired by Szegedy’s <a href="https://arxiv.org/abs/1412.1441">MultiBox</a> work, a fast, class-agnostic way to propose box coordinates. MultiBox uses an Inception-style convolutional network, whose 1×1 convolutions reduce the number of channels while keeping the width and height.</p>
+  <div data-fig="mb"></div>
+  <h3>SSD loss</h3>
+  <ul>
+    <li><b>Confidence loss:</b> softmax cross-entropy over the classes, with background as one class.</li>
+    <li><b>Location loss:</b> Smooth L1 between predicted and true box offsets, counted only for default boxes that match an object.</li>
+  </ul>
+  <div class="callout"><p><b>loss = (1 / N) × (confidence_loss + α × location_loss)</b><br>N is the number of matched default boxes and α is 1 in the paper. A default box matches an object when their IoU is above 0.5.</p></div>
+  <p>Almost every default box is background, so SSD keeps only the hardest negatives, at most 3 for every positive: <b>hard negative mining</b>.</p>
+  <div class="widget" data-w="ssdloss"></div>
+</div>
+</section>
+
+<section id="yolo" data-title="YOLO">
+<div class="in">
+  <span class="kicker">03</span>
+  <h2>YOLO: You Only Look Once</h2>
+  <p>YOLO applies a single forward pass of a neural network to the whole image and predicts bounding boxes and class probabilities together, which makes it fast without losing much accuracy.</p>
+  <h3>Version history</h3>
+  <div class="tw"><table><thead><tr><th>Version</th><th>What changed</th><th>Reported figures</th></tr></thead><tbody>
+    <tr><td><b>YOLOv1</b> (2015, Redmon et al.)</td><td>Merges box proposal and classification into one network. 7×7 grid; each cell predicts 2 boxes but only one set of class probabilities. (<a href="https://arxiv.org/abs/1506.02640">paper</a>)</td><td>45 fps, 63.4% mAP on VOC2007</td></tr>
+    <tr><td><b>YOLOv2 / YOLO9000</b> (2016)</td><td>Adds anchor boxes (sizes chosen by k-means on the training boxes) and predicts class and objectness for every anchor, removing the one-class-per-cell limit. (<a href="https://arxiv.org/abs/1612.08242">paper</a>)</td><td>78.6% mAP on VOC2007 at 544×544, 40 fps</td></tr>
+    <tr><td><b>YOLOv3</b> (April 2018)</td><td>The reference design later versions build on. (<a href="https://pjreddie.com/media/files/papers/YOLOv3.pdf">paper</a>)</td><td>COCO AP50 44.0% (YOLOv2) → 57.9% (YOLOv3-608)</td></tr>
+    <tr><td><b>YOLOv4</b> (2020, Bochkovskiy et al.)</td><td>Takes over YOLO research. (<a href="https://arxiv.org/abs/2004.10934">paper</a>)</td><td>43.5% AP (65.7% AP50) on COCO at about 65 fps on a Tesla V100</td></tr>
+    <tr><td><b>YOLOv5</b> (2020, Ultralytics)</td><td>Released weeks after YOLOv4 without a peer-reviewed paper; written in PyTorch instead of Darknet. Popular in applied computer vision; the model we use.</td><td>–</td></tr>
+  </tbody></table></div>
+  <p class="note">Joseph Redmon stopped working on object detection in 2020, citing concerns about military use of his work. Many versions have followed from several groups: Scaled-YOLOv4, PP-YOLO, YOLOX, YOLOR, YOLOv6, YOLOv7, YOLOv8 and newer.</p>
+  <div data-fig="hist"></div>
+
+  <h3>The idea behind YOLO</h3>
+  <p>YOLO treats detection as a regression problem and divides the image into an S × S grid. If the <b>centre of an object falls inside a grid cell, that cell is responsible</b> for detecting it. Each cell outputs:</p>
+  <ul>
+    <li><b>Box:</b> four values x, y, w, h: (x, y) is the box centre and (w, h) its width and height.</li>
+    <li><b>Confidence:</b> how likely the box contains an object and how well it fits, defined as P(object) × IoU(predicted box, true box).</li>
+    <li><b>Class probabilities:</b> YOLOv3 uses independent logistic classifiers instead of a softmax, so one box can carry more than one label.</li>
+  </ul>
+  <div data-fig="yolo1,yolo2"></div>
+  <h3>YOLO in easy steps</h3>
+  <ol>
+    <li>Divide the image into an S × S grid.</li>
+    <li>Label the training data: with C classes the output has S × S × (C + 5) values (4 box values, 1 objectness, C class scores). A 4×4 grid with 3 classes (car, light, pedestrian) gives a 4×4×8 target.</li>
+    <li>Train a deep CNN with a loss comparing the output with the label tensor. One forward pass predicts every grid cell.</li>
+    <li>An object belongs to the cell that contains its <b>centre</b>, so it is not counted in several cells.</li>
+  </ol>
+  <p>This is the simplified one-box-per-cell version. YOLOv3 predicts 3 boxes per cell at each of 3 scales, so each cell outputs 3 × (C + 5) values: for COCO’s 80 classes, 3 × 85 = 255.</p>
+  <div class="widget" data-w="target"></div>
+  <details class="code"><summary>Code: build a YOLO target</summary><pre data-code="target"></pre></details>
+
+  <h3>YOLOv3 architecture and Darknet-53</h3>
+  <div data-fig="yolo3,y3a"></div>
+  <p>The YOLOv3 backbone, <b>Darknet-53</b>, has 53 convolutional layers built from convolutional and residual blocks. The last three layers (average pooling, fully connected, softmax) are used only to train the classifier on ImageNet and are dropped when it is used to extract features.</p>
+  <div data-fig="dk"></div>
+  <p>Why Darknet-53: its accuracy matches much deeper classifiers but it is faster (77.2% top-1 at 78 fps, versus ResNet-101 77.1% at 53 fps and ResNet-152 77.6% at 37 fps), and it reaches the highest measured floating-point throughput (1457 BFLOP/s against 1039 and 1090), so it uses the GPU better.</p>
+  <div data-fig="dk2"></div>
+  <div class="widget" data-w="compare"></div>
+
+  <div class="callout"><p><b>Common mix-ups to avoid.</b> YOLOv3 uses independent <i>logistic</i> classifiers, not a softmax, so a box can carry more than one label. YOLOv5 was released by <i>Ultralytics</i> (not Redmon’s team) and is written in <i>PyTorch</i>, not Darknet. By contrast, the YOLOv1 speed (45 fps), the anchor boxes of YOLOv2 and its 63.4% → 78.6% VOC mAP jump are correct.</p></div>
+
+  <h3>SSD vs YOLO</h3>
+  <ul>
+    <li>Both detect in a single pass.</li>
+    <li>YOLOv1 ended in two fully connected layers; SSD, and YOLO from v2 onward, are fully convolutional.</li>
+    <li>SSD adds several feature layers to the end of a base network and predicts offsets to default boxes of different scales and aspect ratios, plus a score for each. YOLO from v2 onward uses anchor boxes in much the same way, and YOLOv3 predicts at 3 scales, like SSD’s multi-scale maps.</li>
+    <li>On VOC2007 (SSD paper): SSD300 74.3% mAP at 59 fps; YOLOv1 63.4% mAP at 45 fps. Faster R-CNN reaches 73.2% at 7 fps (Titan X GPU).</li>
+  </ul>
+  <div data-fig="cmp"></div>
+</div>
+</section>
+
+<section id="yolov5" data-title="A pre-trained YOLOv5">
+<div class="in">
+  <span class="kicker">04</span>
+  <h2>A pre-trained YOLOv5 on road images</h2>
+  <p>Why YOLOv5 for our problem:</p>
+  <ul>
+    <li>Pre-trained models are trained on <a href="https://cocodataset.org">COCO</a>, whose 80 classes already include vehicles (car, motorbike, bus, truck, bicycle), traffic light, stop sign, person, and animals such as bird, cat, dog, horse, sheep and cow. (COCO has no “deer”, which matters for road safety in some countries.)</li>
+    <li>It is written in PyTorch, widely used, and comes in five sizes (n, s, m, l, x) for different speed and memory budgets.</li>
+    <li>We use its <b>ONNX export</b>: ONNX is an open model format with a common set of operators and a common file format, so a model built in one framework (here PyTorch) can run in other tools (here OpenCV on a CPU, with no deep-learning framework installed).</li>
+  </ul>
+  <p>The data are 22,241 dashboard-camera images; the models used are <code>yolov5n</code> (nano) and <code>yolov5s</code> (small), and <code>coco.names.txt</code> lists the 80 class labels.</p>
+  <div data-fig="d1,d2"></div>
+  <p>The model returns one tensor per image with 25,200 candidate boxes, each with 85 values. We keep a candidate only if its <b>final score</b> (objectness × best class score, the probability that there is an object <i>and</i> that it is this class) passes a threshold (YOLOv5’s own default is 0.25), keep only driving-relevant classes, and let NMS (IoU threshold 0.45) remove duplicates.</p>
+  <details class="code"><summary>Code: imports, class names and configuration</summary><pre data-code="setup"></pre></details>
+
+  <h3>Decoding the raw output, step by step</h3>
+  <p><b>Step 1: the forward pass.</b> OpenCV turns the image into a “blob” (scaled to 0–1, resized to 640 × 640, BGR swapped to RGB) and the network returns the raw tensor: for a 300 × 480 image, output shape <code>(1, 25200, 85)</code>. The image is stretched to 640 × 640 without keeping its aspect ratio (the official code pads instead, called <i>letterboxing</i>; stretching is simpler and boxes are mapped back with the same factors).</p>
+  <details class="code"><summary>Code: <code>yolo_forward_pass</code></summary><pre data-code="forward"></pre></details>
+  <p><b>Step 2: understand the 25,200 rows.</b> A 640 × 640 input is divided into grids at three strides (8, 16, 32), each cell carrying 3 anchors. Objectness values range from 0.0 to 0.751 in the sample (probabilities, not raw logits).</p>
+  <div class="widget" data-w="rows"></div>
+  <details class="code"><summary>Code: split the rows</summary><pre data-code="rows"></pre></details>
+  <p><b>Steps 3 to 6.</b> Compute the final score and best class for every row; keep confident rows of the classes we care about (here only <b>car</b> and <b>truck</b> survive); convert boxes to the original image; run NMS <b>per class</b>, so a “person” box on a “bicycle” is not suppressed by the bicycle box.</p>
+  <div class="widget" data-w="funnel"></div>
+  <div class="widget" data-w="conv"></div>
+  <p>Wrapping steps 3 to 6 in <code>decode_detections</code> reproduces the step-by-step result: 7 detections either way. Drawing helpers add a labelled box (<code>class:score</code>) for each.</p>
+  <details class="code"><summary>Code: filtering, box conversion, per-class NMS and reusable functions</summary><pre data-code="decode"></pre></details>
+
+  <h3>Running it, latency and thresholds</h3>
+  <p>Running the pipeline on sample images shows vehicles and traffic lights detected with the pre-trained model alone. The network time is measured by OpenCV for the forward pass only (excluding decoding and drawing).</p>
+  <div data-fig="r1,r2"></div>
+  <div class="widget" data-w="lat"></div>
+  <details class="code"><summary>Code: run on images and measure latency</summary><pre data-code="run"></pre></details>
+  <div class="widget" data-w="thr"></div>
+  <p>To improve accuracy further, the model can be fine-tuned on your own dataset. Natural next steps: compare the other YOLOv5 variants (s, m, l, x) on latency and accuracy, and evaluate mAP on the full dataset after mapping its class names to COCO’s.</p>
+</div>
+</section>
+
+<section id="robust" data-title="Robustness">
+<div class="in">
+  <span class="kicker">05</span>
+  <h2>Robustness: night, fog, blur and noise</h2>
+  <p>A detector that works on sunny test frames can fail on the road. The lecture simulates four hard conditions on one image and counts detections for each:</p>
+  <div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    <div class="card"><h4>Night</h4><p>Darker, crushed shadows.</p></div>
+    <div class="card"><h4>Fog</h4><p>Washed out, low contrast.</p></div>
+    <div class="card"><h4>Blur</h4><p>Defocus or motion blur (Gaussian, σ = 6).</p></div>
+    <div class="card"><h4>Noise</h4><p>Sensor noise (Gaussian, σ = 35).</p></div>
+  </div>
+  <div data-fig="deg"></div>
+  <div class="widget" data-w="deg"></div>
+  <details class="code"><summary>Code: <code>degrade</code></summary><pre data-code="degrade"></pre></details>
+</div>
+</section>
+
+<section id="focal" data-title="Class imbalance and focal loss">
+<div class="in">
+  <span class="kicker">06</span>
+  <h2>Class imbalance and focal loss</h2>
+  <p>Single-stage detectors such as SSD and YOLO evaluate roughly 10<sup>4</sup> to 10<sup>5</sup> candidate locations per image (8,732 for SSD300), and only a few contain an object. This <b>class imbalance</b> is the main reason single-stage detectors trailed two-stage detectors in accuracy. Small objects and objects close together can also be missed by YOLO-style detectors. SSD handles part of the imbalance with hard negative mining; <b>RetinaNet</b> changes the loss instead, with <b>focal loss</b>.</p>
+  <p>Each easy background box has a tiny cross-entropy loss, but there are so many that together they dominate the total. Focal loss multiplies the loss by (1 − p<sub>t</sub>)<sup>γ</sup>, shrinking the weight of examples the model already gets right:</p>
+  <div class="callout"><p><b>FL(p<sub>t</sub>) = − α<sub>t</sub> (1 − p<sub>t</sub>)<sup>γ</sup> log(p<sub>t</sub>)</b>, with γ = 2 and α = 0.25 in the RetinaNet paper.</p></div>
+  <div class="widget" data-w="focal"></div>
+  <div class="widget" data-w="toy"></div>
+  <p>The factor <code>(1 − p_t)^gamma</code> is the only difference from ordinary cross-entropy, and the lecture’s implementation matches torchvision’s <code>sigmoid_focal_loss</code> exactly (0.2552 on random logits). Setting γ = 0 turns focal loss back into weighted cross-entropy.</p>
+  <details class="code"><summary>Code: focal loss and the toy detector</summary><pre data-code="focal"></pre></details>
+  <h3>Key takeaways</h3>
+  <div class="callout"><ul>
+    <li>Single-stage detectors skip the proposal step and predict boxes and classes in one pass, which makes real-time detection possible.</li>
+    <li><b>SSD</b> predicts from several feature maps using default boxes (8,732 for SSD300); <b>YOLO</b> divides the image into a grid and predicts from anchor boxes.</li>
+    <li>A pre-trained <b>YOLOv5</b> runs on CPU for our driving use case without any training (183.6 ms per image in the lecture, which is still slower than real time).</li>
+    <li>Class imbalance is the main weakness of single-stage detectors; <b>RetinaNet</b> addresses it with <b>focal loss</b>.</li>
+  </ul></div>
+</div>
+</section>
+
+</main>
+<footer>Computer Vision 8 post read<small>Interactive learning article</small></footer>
+
+<script>
+(function(){
+'use strict';
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const fmt=n=>Number(n).toLocaleString('en-US');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+let uid=0;
+function h(html){const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstElementChild;}
+function mix(t){t=Math.max(0,Math.min(1,t));const a=[255,255,255],b=[109,40,217];return 'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')';}
+function ink(t){return t>0.5?'#fff':'#2e1065';}
+function shell(root,title,desc){root.classList.add('widget');root.innerHTML='<span class="wtag">Interactive</span><h4 class="wtitle">'+title+'</h4>'+(desc?'<p class="wdesc">'+desc+'</p>':'')+'<div class="wbody"></div>';return $('.wbody',root);}
+function seg(container,options,value,onChange,label){
+  const wrap=h('<div class="seg" role="group" aria-label="'+label+'"></div>');
+  function set(v){value=v;Array.from(wrap.children).forEach((b,i)=>b.setAttribute('aria-pressed',String(options[i].value===v)));}
+  options.forEach(o=>{const b=h('<button type="button" aria-pressed="false">'+o.label+'</button>');b.addEventListener('click',()=>{set(o.value);onChange(o.value);});wrap.appendChild(b);});
+  set(value);container.appendChild(wrap);return {set};
+}
+
+/* ---------- chart helper (inline SVG) ---------- */
+function niceMax(m){const st=m<=3?0.5:m<=6?1:2;return Math.ceil(m/st)*st;}
+function stepTicks(a,b,st){const t=[];for(let v=a;v<=b+1e-9;v+=st)t.push(+v.toFixed(6));return t;}
+function epochTicks(n){const st=n<=12?1:5,t=[1];for(let v=st;v<=n;v+=st)if(v>1)t.push(v);return t;}
+function chart(o){
+  const W=o.W||640,H=o.H||300,M=Object.assign({l:52,r:16,t:16,b:40},o.M||{});
+  const iw=W-M.l-M.r,ih=H-M.t-M.b,x0=o.x[0],x1=o.x[1],y0=o.y[0],y1=o.y[1];
+  const X=v=>M.l+(v-x0)/(x1-x0)*iw,Y=v=>M.t+ih-(v-y0)/(y1-y0)*ih;
+  let s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(o.label||'Chart')+'">';
+  (o.yt||[]).forEach(t=>{s+='<line x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+Y(t).toFixed(1)+'" y2="'+Y(t).toFixed(1)+'" stroke="#e4dcfa"/><text x="'+(M.l-8)+'" y="'+(Y(t)+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="#5a4f78">'+(o.yf?o.yf(t):t)+'</text>';});
+  (o.xt||[]).forEach(t=>{s+='<text x="'+X(t).toFixed(1)+'" y="'+(H-M.b+17)+'" text-anchor="middle" font-size="11" fill="#5a4f78">'+(o.xf?o.xf(t):t)+'</text>';});
+  s+='<line x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+(M.t+ih)+'" y2="'+(M.t+ih)+'" stroke="#a78bfa"/>';
+  if(o.xlabel)s+='<text x="'+(M.l+iw/2)+'" y="'+(H-5)+'" text-anchor="middle" font-size="12" font-weight="700" fill="#2e1065">'+esc(o.xlabel)+'</text>';
+  if(o.ylabel)s+='<text transform="translate(13 '+(M.t+ih/2)+') rotate(-90)" text-anchor="middle" font-size="12" font-weight="700" fill="#2e1065">'+esc(o.ylabel)+'</text>';
+  (o.hl||[]).forEach(v=>{s+='<line x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+Y(v.y).toFixed(1)+'" y2="'+Y(v.y).toFixed(1)+'" stroke="'+(v.c||'#a78bfa')+'" stroke-width="'+(v.w||1.5)+'"'+(v.d?' stroke-dasharray="'+v.d+'"':'')+'/>';});
+  (o.vl||[]).forEach(v=>{const x=X(v.x),right=x>W*0.7;s+='<line x1="'+x.toFixed(1)+'" x2="'+x.toFixed(1)+'" y1="'+M.t+'" y2="'+(M.t+ih)+'" stroke="'+(v.c||'#8b5cf6')+'" stroke-width="'+(v.w||1.5)+'" stroke-dasharray="'+(v.d||'4 4')+'"/>'+(v.label?'<text x="'+(x+(right?-4:4)).toFixed(1)+'" y="'+(M.t+11)+'" text-anchor="'+(right?'end':'start')+'" font-size="10.5" font-weight="700" fill="#4c1d95">'+esc(v.label)+'</text>':'');});
+  if(o.cur!=null){const x=X(o.cur).toFixed(1);s+='<line x1="'+x+'" x2="'+x+'" y1="'+M.t+'" y2="'+(M.t+ih)+'" stroke="#a78bfa" stroke-width="2"/>';}
+  (o.series||[]).forEach(se=>{
+    if(!se.pts.length)return;
+    s+='<path d="'+se.pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join(' ')+'" fill="none" stroke="'+se.c+'" stroke-width="'+(se.w||2.6)+'"'+(se.d?' stroke-dasharray="'+se.d+'"':'')+' stroke-linejoin="round"/>';
+    if(se.m)se.pts.forEach(p=>{const hi=o.cur!=null&&Math.abs(p[0]-o.cur)<1e-9,r=hi?6:3.4,x=X(p[0]),y=Y(p[1]);
+      if(se.m==='c')s+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+r+'" fill="'+se.c+'"/>';
+      else if(se.m==='s')s+='<rect x="'+(x-r).toFixed(1)+'" y="'+(y-r).toFixed(1)+'" width="'+2*r+'" height="'+2*r+'" fill="#fff" stroke="'+se.c+'" stroke-width="2.2"/>';
+      else s+='<path d="M'+x.toFixed(1)+' '+(y-r-1).toFixed(1)+' L'+(x+r+1).toFixed(1)+' '+(y+r).toFixed(1)+' L'+(x-r-1).toFixed(1)+' '+(y+r).toFixed(1)+' Z" fill="#fff" stroke="'+se.c+'" stroke-width="2.2"/>';});
+  });
+  (o.dots||[]).forEach(d=>{s+='<circle cx="'+X(d.x).toFixed(1)+'" cy="'+Y(d.y).toFixed(1)+'" r="6" fill="'+d.c+'" stroke="#fff" stroke-width="2"/>';});
+  return s+'</svg>';
+}
+function legendHtml(S){return S.map(se=>'<span><i style="border-color:'+se.c+';'+(se.d?'border-top-style:dashed':'')+'"></i>'+se.n+'</span>').join('');}
+function fmtLR(v){return v.toFixed(6).replace(/0+$/,'').replace(/\.$/,'');}
+
+/* ---------- figures ---------- */
+const CF='https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/';
+function fig(path,alt,cap,w){
+  return '<figure class="fig"><img src="'+CF+path+'" alt="'+esc(alt)+'" loading="lazy"'+(w?' style="max-width:'+w+'px"':'')+' onerror="this.closest(\'.fig\').classList.add(\'broken\')"><div class="fb" role="note">Image not available offline. '+esc(alt)+'</div>'+(cap?'<figcaption>'+cap+'</figcaption>':'')+'</figure>';
+}
+/* ---------- tabs ---------- */
+function mountTabs(root,items){
+  root.classList.add('tabs');
+  const id='t'+(++uid),list=h('<div class="tablist" role="tablist"></div>'),tabs=[],panels=[];
+  items.forEach((it,i)=>{
+    const b=h('<button type="button" role="tab" id="'+id+'-t'+i+'" aria-controls="'+id+'-p'+i+'">'+it.label+'</button>');
+    const p=h('<div role="tabpanel" id="'+id+'-p'+i+'" aria-labelledby="'+id+'-t'+i+'" tabindex="0"></div>');
+    p.innerHTML=it.html;tabs.push(b);panels.push(p);list.appendChild(b);
+  });
+  root.append(list,...panels);
+  function sel(i,focus){tabs.forEach((b,j)=>{const on=i===j;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;panels[j].hidden=!on;});if(focus)tabs[i].focus();}
+  tabs.forEach((b,i)=>{
+    b.addEventListener('click',()=>sel(i));
+    b.addEventListener('keydown',e=>{
+      if(e.key==='ArrowRight'){e.preventDefault();sel((i+1)%tabs.length,true);}
+      else if(e.key==='ArrowLeft'){e.preventDefault();sel((i-1+tabs.length)%tabs.length,true);}
+      else if(e.key==='Home'){e.preventDefault();sel(0,true);}
+      else if(e.key==='End'){e.preventDefault();sel(tabs.length-1,true);}
+    });
+  });
+  sel(0);
+}
+const code=k=>'<pre data-code="'+k+'"></pre>';
+function wQuiz(root,key){
+  const d=QUIZ[key],name='q'+(++uid),L='abcd';
+  root.classList.add('widget');
+  root.innerHTML='<span class="wtag">Check your understanding</span><fieldset><legend>'+d.q+'</legend>'+d.c.map((c,i)=>'<label class="opt"><input type="radio" name="'+name+'" value="'+i+'"><span>'+(d.letters?L[i]+') ':'')+c+'</span><span class="mk"></span></label>').join('')+'</fieldset><div class="qa"><button type="button" class="btn" disabled>Check answer</button><button type="button" class="btn ghost" hidden>Try again</button></div><div class="readout" aria-live="polite" hidden></div>';
+  const [chk,again]=$$('.btn',root),out=$('.readout',root),opts=$$('.opt',root),radios=$$('input',root);
+  radios.forEach(r=>r.addEventListener('change',()=>{chk.disabled=false;}));
+  chk.addEventListener('click',()=>{
+    const v=radios.findIndex(r=>r.checked);if(v<0)return;
+    opts.forEach((o,i)=>{o.classList.remove('ok','bad');$('.mk',o).textContent='';if(i===d.a){o.classList.add('ok');$('.mk',o).textContent='✓ Correct answer';}else if(i===v){o.classList.add('bad');$('.mk',o).textContent='✗ Your choice';}});
+    out.hidden=false;out.innerHTML='<b>'+(v===d.a?'Correct.':'Not quite.')+'</b> '+d.e;
+    chk.hidden=true;again.hidden=false;radios.forEach(r=>r.disabled=true);
+  });
+  again.addEventListener('click',()=>{
+    opts.forEach(o=>{o.classList.remove('ok','bad');$('.mk',o).textContent='';});
+    radios.forEach(r=>{r.checked=false;r.disabled=false;});out.hidden=true;chk.hidden=false;chk.disabled=true;again.hidden=true;
+  });
+}
+
+/* ---------- contents + progress ---------- */
+function wToc(){
+  const secs=$$('main section[data-title]'),ol=$('#toc ol'),btn=$('#tocBtn'),toc=$('#toc');
+  ol.innerHTML=secs.map((s,i)=>'<li><a href="#'+s.id+'"><b>'+String(i+1).padStart(2,'0')+'</b><span>'+s.dataset.title+'</span></a></li>').join('');
+  function close(){toc.hidden=true;btn.setAttribute('aria-expanded','false');}
+  btn.addEventListener('click',()=>{const o=toc.hidden;toc.hidden=!o;btn.setAttribute('aria-expanded',String(o));});
+  ol.addEventListener('click',e=>{if(e.target.closest('a'))close();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!toc.hidden){close();btn.focus();}});
+  document.addEventListener('click',e=>{if(!toc.hidden&&!e.target.closest('#toc')&&!e.target.closest('#tocBtn'))close();});
+  const links=$$('a',ol);
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting){links.forEach(l=>l.removeAttribute('aria-current'));const l=$('a[href="#'+en.target.id+'"]',ol);if(l)l.setAttribute('aria-current','true');}});},{rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(s=>io.observe(s));
+  }
+  const bar=$('#bar');
+  function prog(){const d=document.documentElement,t=d.scrollHeight-d.clientHeight;bar.style.width=(t>0?Math.min(100,d.scrollTop/t*100):0)+'%';}
+  window.addEventListener('scroll',prog,{passive:true});prog();
+}
+const mk=(n,m,f)=>Array.from({length:n},(_,i)=>Array.from({length:m},(_,j)=>f(i,j)));
+function corr(a,k){const kh=k.length,kw=k[0].length;return mk(a.length-kh+1,a[0].length-kw+1,(i,j)=>{let s=0;for(let p=0;p<kh;p++)for(let q=0;q<kw;q++)s+=a[i+p][j+q]*k[p][q];return s;});}
+const flip=k=>k.slice().reverse().map(r=>r.slice().reverse());
+function padM(a,p){return mk(a.length+2*p,a[0].length+2*p,(i,j)=>{const r=i-p,c=j-p;return r>=0&&r<a.length&&c>=0&&c<a[0].length?a[r][c]:0;});}
+const convFull=(a,k)=>corr(padM(a,k.length-1),flip(k));
+const r2=v=>Math.round(v*1e6)/1e6;
+function matHtml(m,o){o=o||{};return '<div class="mat" style="--c:'+m[0].length+(o.max?';max-width:'+o.max+'px':'')+'">'+m.map((r,i)=>r.map((v,j)=>'<div class="cell'+(o.cls?' '+o.cls(i,j,v):'')+'"'+(o.style?' style="'+o.style(i,j,v)+'"':'')+'>'+(o.fmt?o.fmt(v):r2(v))+'</div>').join('')).join('')+'</div>';}
+const heat=(m,v)=>'background:'+mix(Math.abs(v)/(m||1))+';color:'+ink(Math.abs(v)/(m||1));
+const P=fmt,pct=v=>(v*100).toFixed(1)+'%';
+const bar=(l,v,max,txt)=>'<div class="brow"><span class="bl">'+l+'</span><span class="bt"><span class="bf" style="width:'+Math.max(0.5,v/max*100)+'%"></span></span><span class="bv">'+txt+'</span></div>';
+const numF=(ctrl,label,val,cb,o)=>{o=o||{};const lab=h('<label class="fld">'+label+'<input type="number" value="'+val+'"'+(o.min!=null?' min="'+o.min+'"':'')+(o.max!=null?' max="'+o.max+'"':'')+(o.step?' step="'+o.step+'"':'')+'></label>');const i=$('input',lab);i.addEventListener('input',()=>{const v=parseFloat(i.value);if(!isNaN(v))cb(v);});ctrl.appendChild(lab);return i;};
+const FIGS={
+ prob:fig('249/533/original/1.png?1793097757','Self-driving car detections','Real-time detection on the road',520),
+ ss:fig('249/534/original/2.png?1793097780','A single-stage detector','Single-stage detection',520),
+ ssd1:fig('249/535/original/3.png?1793097798','SSD architecture','SSD architecture',520),
+ ssd2:fig('249/537/original/4.png?1793097818','SSD feature maps as grids','Feature maps as grids',520),
+ mb:fig('249/538/original/5.png?1793097837','MultiBox network','MultiBox',520),
+ ssd3:fig('249/541/original/6.png?1793097900','SSD detection module','Detection module on every selected feature map',520),
+ hist:fig('249/542/original/7.png?1793098114','YOLO version timeline','YOLO timeline',520),
+ yolo1:fig('249/543/original/8.png?1793098146','YOLO grid','The grid idea',520),
+ yolo2:fig('249/545/original/9.png?1793098177','YOLO grid outputs','Boxes, confidence and classes per cell',520),
+ yolo3:fig('249/546/original/10.png?1793098209','Simple YOLO architecture','Simple YOLO architecture',520),
+ y3a:fig('249/549/original/1.png?1793098652','YOLOv3 architecture','YOLOv3 architecture',520),
+ dk:fig('249/548/original/2.png?1793098622','Darknet-53 backbone','Darknet-53 backbone',520),
+ dk2:fig('249/550/original/3.png?1793098667','Darknet-53 compared with ResNet','Darknet-53 vs ResNet',520),
+ cmp:fig('249/551/original/4.png?1793098688','SSD compared with YOLOv1','SSD vs YOLOv1 on VOC2007',520),
+ d1:fig('250/417/original/Screenshot_2026-10-29_160448.png?1793270111','First dataset image','Dataset sample',520),
+ d2:fig('250/419/original/Screenshot_2026-10-29_160453.png?1793270138','Second dataset image','Dataset sample',520),
+ r1:fig('250/421/original/Screenshot_2026-10-29_160701.png?1793270240','Original and predicted detections','Original and prediction',520),
+ r2:fig('250/422/original/Screenshot_2026-10-29_160710.png?1793270266','Original and predicted detections, second image','Original and prediction',520),
+ deg:fig('250/423/original/Screenshot_2026-10-29_160821.png?1793270315','Detections under night, fog, blur and noise','Night, fog, blur and noise on one image',520)
+};
+
+/* ---- SSD default boxes ---- */
+function wSsd(root){
+  const b=shell(root,'SSD300 default boxes','Six detection layers; each grid cell carries 4 or 6 default boxes. Edit the grid or box counts to see how the total moves. Defaults give the lecture’s 8,732.');
+  const L=[[38,4],[19,6],[10,6],[5,6],[3,4],[1,4]];const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  const NM=['conv4_3','layer 2','layer 3','layer 4','layer 5','layer 6'];
+  L.forEach((l,i)=>{numF(ctrl,'Grid '+(i+1),l[0],x=>{l[0]=Math.max(1,Math.round(x));draw();},{min:1,step:1});numF(ctrl,'Boxes '+(i+1),l[1],x=>{l[1]=Math.max(1,Math.round(x));draw();},{min:1,step:1});});
+  function draw(){const pl=L.map(g=>g[0]*g[0]*g[1]),t=pl.reduce((a,c)=>a+c,0),mx=Math.max(...pl);
+    out.innerHTML=L.map((g,i)=>bar(g[0]+'×'+g[0]+' × '+g[1],pl[i],mx,P(pl[i]))).join('');
+    const def=L.map(g=>g.join()).join('|')==='38,4|19,6|10,6|5,6|3,4|1,4';
+    ro.innerHTML='Total default boxes per image = <b>'+P(t)+'</b>'+(def?' (per layer 5,776 · 2,166 · 600 · 150 · 36 · 4; matches the lecture and torchvision’s SSD300 count).':'.')+'<br>Large early maps (38 × 38) have many small cells and help with small objects; small deep maps (1 × 1) help with large ones.';}
+  draw();
+}
+
+/* ---- SSD loss ---- */
+function wSsdLoss(root){
+  const b=shell(root,'SSD loss and hard negative mining','loss = (1/N) × (confidence + α × location). N = matched default boxes (IoU above 0.5). Almost every default box is background, so only the hardest negatives are kept: at most 3 per positive.');
+  const v={N:20,tot:8732,conf:30,loc:10,a:1};const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  numF(ctrl,'Matched boxes N',v.N,x=>{v.N=Math.max(1,Math.round(x));draw();},{min:1,step:1});numF(ctrl,'Confidence loss (sum)',v.conf,x=>{v.conf=x;draw();},{min:0});numF(ctrl,'Location loss (sum)',v.loc,x=>{v.loc=x;draw();},{min:0});numF(ctrl,'α',v.a,x=>{v.a=x;draw();},{min:0,step:.5});
+  function draw(){const neg=v.tot-v.N,keep=Math.min(neg,3*v.N);
+    out.innerHTML=bar('Default boxes',v.tot,v.tot,P(v.tot))+bar('Positives (matched)',v.N,v.tot,P(v.N))+bar('Negatives available',neg,v.tot,P(neg))+bar('Negatives kept (≤ 3 per positive)',keep,v.tot,P(keep));
+    ro.innerHTML='Loss = (1/'+v.N+') × ('+v.conf+' + '+v.a+' × '+v.loc+') = <b>'+((v.conf+v.a*v.loc)/v.N).toFixed(3)+'</b>. With N = '+v.N+' positives, SSD trains on <b>'+P(keep)+'</b> of the '+P(neg)+' negatives.<br><span class="note">Illustrative numbers: the lecture gives the formula, α = 1 in the paper, the 0.5 matching IoU and the 3:1 ratio, not a worked example. Confidence loss is softmax cross-entropy with background as a class; location loss is Smooth L1 on matched boxes only.</span>';}
+  draw();
+}
+
+/* ---- YOLO target ---- */
+function wTarget(root){
+  const b=shell(root,'Build a YOLO target tensor','The cell containing an object’s centre is responsible for it. Each cell stores (x, y, w, h, objectness, class scores): C + 5 numbers. (x, y) are the centre’s offset inside the cell; (w, h) are fractions of the whole image. Defaults are the lecture’s car and traffic light on a 4 × 4 grid.');
+  const st={S:4,C:3,O:[[0,.3,.6,.2,.3],[1,.8,.2,.05,.1]]};const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="duo"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  numF(ctrl,'Grid S',st.S,x=>{st.S=Math.max(1,Math.min(12,Math.round(x)));draw();},{min:1,max:12,step:1});
+  st.O.forEach((o,k)=>{['class','cx','cy','w','h'].forEach((l,i)=>numF(ctrl,'Obj '+(k+1)+' '+l,o[i],x=>{o[i]=i===0?Math.max(0,Math.min(2,Math.round(x))):Math.max(0,Math.min(.999,x));draw();},{min:0,max:i?1:2,step:i?.05:1}));});
+  const CN=['car','light','pedestrian'];
+  function draw(){const S=st.S,cells={};st.O.forEach((o,k)=>{const [c,cx,cy,w,hh]=o,row=Math.floor(cy*S),col=Math.floor(cx*S);cells[row+','+col]={k,row,col,v:[cx*S-col,cy*S-row,w,hh,1,c===0?1:0,c===1?1:0,c===2?1:0]};});
+    const size=S>8?18:S>6?24:34;let g='<div class="mat" style="--c:'+S+';max-width:'+Math.min(300,S*(size+10))+'px">';for(let r=0;r<S;r++)for(let c=0;c<S;c++){const e=cells[r+','+c];g+='<div class="cell'+(e?' on':'')+'" style="font-size:.62rem" title="cell ('+r+', '+c+')">'+(e?CN[st.O[e.k][0]][0].toUpperCase():'')+'</div>';}
+    out.innerHTML='<div class="pn"><div class="pl">Grid ('+S+'×'+S+'); responsible cells marked C(ar) / L(ight) / P(edestrian)</div>'+g+'</div></div><div class="pn"><div class="pl">Target shape</div><p><code>('+S+', '+S+', '+(st.C+5)+')</code></p><p class="note">Cells with no object are all zeros: '+(S*S-Object.keys(cells).length)+' of '+(S*S)+'.</p></div>';
+    ro.innerHTML=Object.values(cells).map(e=>'cell (row '+e.row+', col '+e.col+'): <code>['+e.v.map(x=>+x.toFixed(2)).join(', ')+']</code>').join('<br>')+(Object.keys(cells).length<st.O.length?'<br><b>Two objects share a cell</b>: the simplified one-box-per-cell target can store only one, which is why YOLOv2 and later use anchor boxes.':'')+'<br>The objectness is 0 for most cells: this is the class imbalance we meet again with focal loss.';}
+  draw();
+}
+
+/* ---- YOLO output rows ---- */
+function wRows(root){
+  const b=shell(root,'Where do 25,200 rows and 85 values come from?','Grids at strides 8, 16 and 32, with 3 anchors per cell; each row is cx, cy, w, h, objectness and one score per class. Defaults: 640 × 640 input, 80 COCO classes.');
+  const v={I:640,A:3,C:80};const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  numF(ctrl,'Input size',v.I,x=>{v.I=Math.max(32,Math.round(x));draw();},{min:32,step:32});numF(ctrl,'Anchors per cell',v.A,x=>{v.A=Math.max(1,Math.round(x));draw();},{min:1,step:1});numF(ctrl,'Classes C',v.C,x=>{v.C=Math.max(1,Math.round(x));draw();},{min:1,step:1});
+  function draw(){const g=[8,16,32].map(s=>Math.floor(v.I/s)),n=g.map(x=>v.A*x*x),t=n.reduce((a,c)=>a+c,0);
+    out.innerHTML=[8,16,32].map((s,i)=>bar('Stride '+s+' ('+g[i]+'×'+g[i]+')',n[i],n[0],P(n[i]))).join('');
+    ro.innerHTML='Rows = '+v.A+' × ('+g.map(x=>x+'²').join(' + ')+') = <b>'+P(t)+'</b>; values per row = 4 + 1 + '+v.C+' = <b>'+(v.C+5)+'</b>; output shape <code>(1, '+t+', '+(v.C+5)+')</code>.'+(t===25200&&v.C===80?' Matches the lecture.':'')+'<br>YOLOv3 per cell: '+v.A+' × ('+v.C+' + 5) = <b>'+(v.A*(v.C+5))+'</b>'+(v.C===80&&v.A===3?' (the lecture’s 255 for COCO)':'')+'.<br>The fifth value, objectness, says whether there is <i>any</i> object; the class scores say which. The final score is objectness × best class score.';}
+  draw();
+}
+
+/* ---- decode funnel ---- */
+const FUN=[['Candidate rows',25200,'Every anchor of every cell at the three strides.'],['Objectness ≥ 0.25',125,'Filtering by objectness alone.'],['Final score ≥ 0.25',104,'Final score = objectness × best class score, the probability of an object <i>and</i> of this class.'],['Target classes kept',104,'Only driving-relevant classes remain; here the survivors are car and truck.'],['After per-class NMS',7,'Neighbouring rows predicting the same object are merged, per class.']];
+const DET=[['car',.71,[4,162,55,25]],['car',.62,[265,146,21,10]],['car',.59,[167,147,22,14]],['car',.57,[56,158,33,19]],['car',.41,[96,145,37,24]],['car',.34,[224,146,10,5]],['truck',.49,[298,133,45,41]]];
+function wFunnel(root){
+  const b=shell(root,'From 25,200 raw rows to 7 detections','One sample 300 × 480 image through YOLOv5n. Step through the decoding pipeline.');
+  let k=0;const bar_=h('<div class="stepbar"><button type="button" class="btn ghost sm" data-a="prev">◀ Prev</button><input type="range" min="0" max="4" value="0" aria-label="Stage"><button type="button" class="btn sm" data-a="next">Next ▶</button></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(bar_,out,ro);
+  const rng=$('input',bar_);
+  function draw(){rng.value=k;out.innerHTML=FUN.map((f,i)=>bar(f[0],Math.log10(f[1]+1),Math.log10(25201),P(f[1]))).join('').replace(/class="brow"/g,'class="brow" ').split('</div>').map(s=>s).join('</div>');
+    $$('.brow',out).forEach((r,i)=>{r.style.opacity=i<=k?1:.35;});
+    ro.innerHTML='<b>'+FUN[k][0]+': '+P(FUN[k][1])+'.</b> '+FUN[k][2]+'<br><span class="note">Bar length is on a log scale.</span>'+(k===4?'<div class="tw"><table><thead><tr><th>Class</th><th>Score</th><th>Box [left, top, w, h]</th></tr></thead><tbody>'+DET.map(d=>'<tr><td>'+d[0]+'</td><td>'+d[1].toFixed(2)+'</td><td>['+d[2].join(', ')+']</td></tr>').join('')+'</tbody></table></div>':'');}
+  bar_.addEventListener('click',e=>{const a=e.target.dataset.a;if(a==='prev')k=Math.max(0,k-1);else if(a==='next')k=Math.min(4,k+1);else return;draw();});rng.addEventListener('input',()=>{k=+rng.value;draw();});draw();
+}
+
+/* ---- box conversion ---- */
+function wConv(root){
+  const b=shell(root,'Mapping a box back to the original image','The network sees a 640 × 640 stretched image (aspect ratio not kept). Convert (cx, cy, w, h) in 640-px coordinates to (left, top, width, height) in the original image. Defaults: the lecture’s “typical” raw row and its 300 × 480 image (the output boxes in the lecture come from other rows).');
+  const v={cx:3.9,cy:5.3,w:10.5,h:8.7,W:480,H:300};const ctrl=h('<div class="ctrl"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,ro);
+  [['cx','cx'],['cy','cy'],['w','w'],['h','h'],['W','image width'],['H','image height']].forEach(([k,l])=>numF(ctrl,l,v[k],x=>{v[k]=x;draw();},{step:k.length>1||'WH'.includes(k)?1:.5}));
+  function draw(){const xf=v.W/640,yf=v.H/640,t=Math.trunc;ro.innerHTML='x_factor = '+v.W+'/640 = <b>'+xf.toFixed(4)+'</b>, y_factor = '+v.H+'/640 = <b>'+yf.toFixed(4)+'</b><br>left = (cx − w/2) × x_factor = <b>'+t((v.cx-v.w/2)*xf)+'</b> · top = (cy − h/2) × y_factor = <b>'+t((v.cy-v.h/2)*yf)+'</b> · width = w × x_factor = <b>'+t(v.w*xf)+'</b> · height = h × y_factor = <b>'+t(v.h*yf)+'</b><br><span class="note">Values are truncated to integers, as <code>astype(int)</code> does. A negative left means the box edge sits slightly outside the image.</span>';}
+  draw();
+}
+
+/* ---- thresholds ---- */
+const THR={'0.1':[12,9,6,1,4,25],'0.25':[7,5,2,1,3,13],'0.5':[4,3,2,0,2,7],'0.75':[0,1,0,0,0,1]};
+function wThr(root){
+  const b=shell(root,'Score threshold: detections per image','Detections on six sample images at four thresholds (lecture output). A lower threshold finds more objects but admits more false alarms; a higher one misses more.');
+  let t='0.25';const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  seg(ctrl,Object.keys(THR).map(k=>({label:'Threshold '+k,value:k})),t,v=>{t=v;draw();},'Score threshold');
+  function draw(){const d=THR[t];out.innerHTML=d.map((n,i)=>bar('Image '+(i+1),n,25,String(n))).join('');ro.innerHTML='Total at '+t+': <b>'+d.reduce((a,c)=>a+c,0)+'</b> detections (0.1 → 57 · 0.25 → 31 · 0.5 → 18 · 0.75 → 2).<br>For a pedestrian detector a miss is usually worse than a false alarm, but the best threshold depends on what the car does with the result (for example braking automatically versus warning the driver). YOLOv5’s own default is 0.25.';}
+  draw();
+}
+
+/* ---- latency ---- */
+function wLat(root){
+  const b=shell(root,'Is it real-time?','Mean network time of YOLOv5n on a CPU in the lecture: 183.6 ms per image (forward pass only, excluding decoding and drawing). Pick a time budget per image.');
+  let ms=183.6;const ctrl=h('<div class="ctrl"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,ro);
+  numF(ctrl,'Network time (ms)',ms,x=>{ms=Math.max(.1,x);draw();},{min:.1,step:10});
+  function draw(){ro.innerHTML='1000 ms ÷ '+ms+' ms ≈ <b>'+(1000/ms).toFixed(1)+' frames per second</b> (computed). Real-time driving needs a few tens of milliseconds for the <i>whole</i> pipeline, so 183.6 ms on this CPU is not yet enough: smaller/faster models, other hardware, or exporting to an optimised runtime would be the next steps. The lecture’s check also suggests running the other YOLOv5 sizes (s, m, l, x) and comparing latency and accuracy.';}
+  draw();
+}
+
+/* ---- pixel degradation ---- */
+function wDeg(root){
+  const b=shell(root,'What “bad conditions” do to a pixel','The lecture simulates four hard conditions on a BGR image. Try one pixel value (0–255) to see what night and fog do to it. Noise adds random Gaussian values (σ = 35) and blur averages neighbouring pixels, so they cannot be shown on one number.');
+  let v=120;const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  const sl=h('<label class="fld">Pixel value <span class="zv"></span><input type="range" min="0" max="255" step="1" value="120" aria-label="Pixel value"></label>');ctrl.appendChild(sl);$('input',sl).addEventListener('input',e=>{v=+e.target.value;draw();});
+  function draw(){$('.zv',sl).textContent=v;const n=Math.trunc(255*Math.pow(v/255,2.5)*.6),f=Math.trunc(.45*v+.55*200);
+    out.innerHTML=bar('Original',v,255,String(v))+bar('Night',n,255,String(n))+bar('Fog',f,255,String(f));
+    ro.innerHTML='Night: <code>255 · (v/255)<sup>2.5</sup> · 0.6</code> = <b>'+n+'</b> (darker, crushed shadows). Fog: <code>0.45·v + 0.55·200</code> = <b>'+f+'</b> (washed out, low contrast: dark pixels get lighter, bright ones darker). Computed from the lecture’s formulas.<br>This is a small, synthetic test. It shows <i>that</i> the detector degrades, not by how much on real roads; a proper check needs labelled night and fog footage.';}
+  draw();
+}
+
+/* ---- detectors compared ---- */
+function wCompare(root){
+  const b=shell(root,'Speed and accuracy, from the lecture','Figures quoted in the lecture from the papers; they come from different GPUs and test sets, so compare orders of magnitude only.');
+  const SETS={voc:{t:'VOC2007 (SSD paper, Titan X GPU)',cols:['mAP (%)','fps'],rows:[['Faster R-CNN',73.2,7],['SSD300',74.3,59],['YOLOv1',63.4,45]]},coco:{t:'COCO AP50 vs latency',cols:['AP50 (%)','ms'],rows:[['YOLOv2',44.0,null],['RetinaNet-101-800',57.5,198],['YOLOv3-608',57.9,51],['YOLOv3-416',55.3,29]]},dk:{t:'Backbones on ImageNet',cols:['top-1 (%)','fps'],rows:[['Darknet-53',77.2,78],['ResNet-101',77.1,53],['ResNet-152',77.6,37]]}};
+  let s='voc',m=0;const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  seg(ctrl,[{label:'VOC2007',value:'voc'},{label:'COCO (YOLOv3)',value:'coco'},{label:'Backbones',value:'dk'}],s,v=>{s=v;draw();},'Comparison');
+  const sg=h('<div></div>');ctrl.appendChild(sg);let ms;
+  function draw(){const D=SETS[s];sg.innerHTML='';ms=seg(sg,[{label:D.cols[0],value:0},{label:D.cols[1],value:1}],m,v=>{m=v;draw2();},'Metric');draw2();}
+  function draw2(){const D=SETS[s],i=m+1,mx=Math.max(...D.rows.map(r=>r[i]||0));out.innerHTML=D.rows.map(r=>r[i]==null?'<div class="brow"><span class="bl">'+r[0]+'</span><span class="bt"></span><span class="bv">not given</span></div>':bar(r[0],r[i],mx*1.05,String(r[i]))).join('');
+    ro.innerHTML=D.t+(s==='voc'?'<br>SSD300 is both more accurate (74.3 vs 73.2 mAP) and about 8× faster (59 vs 7 fps, computed) than Faster R-CNN here; YOLOv1 trades accuracy (63.4) for speed (45 fps).':s==='coco'?'<br>YOLOv3-608 matches RetinaNet-101-800 (57.9 vs 57.5 AP50) in 51 ms instead of 198 ms (about 3.9× faster, computed); YOLOv3-416 takes 29 ms at 55.3. YOLOv2 → YOLOv3 AP50: 44.0 → 57.9 (YOLOv2’s latency is not given).':'<br>Darknet-53 is about 1.5× faster than ResNet-101 (78/53) and 2× faster than ResNet-152 (78/37) at similar accuracy. It also reaches the highest measured throughput: 1457 BFLOP/s vs 1039 (ResNet-101) and 1090 (ResNet-152), so it uses the GPU better.');}
+  draw();
+}
+
+/* ---- focal loss ---- */
+function wFocal(root){
+  const b=shell(root,'Focal loss: FL = −α<sub>t</sub> (1 − p<sub>t</sub>)<sup>γ</sup> log p<sub>t</sub>','Easy examples (p<sub>t</sub> near 1) are shrunk by (1 − p<sub>t</sub>)<sup>γ</sup>. RetinaNet uses γ = 2 and α = 0.25. With γ = 0 focal loss is weighted cross-entropy.');
+  const v={g:2,a:.25};const ctrl=h('<div class="ctrl"></div>'),leg=h('<div class="legend"></div>'),pl=h('<div class="plot"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,leg,pl,ro);
+  numF(ctrl,'γ',v.g,x=>{v.g=Math.max(0,x);draw();},{min:0,step:.5});numF(ctrl,'α',v.a,x=>{v.a=x;draw();},{min:0,max:1,step:.05});
+  function draw(){const xs=[];for(let p=.02;p<=1.0001;p+=.02)xs.push(p);const ce=xs.map(p=>[p,-Math.log(p)]),fl=xs.map(p=>[p,-Math.pow(1-p,v.g)*Math.log(p)]);
+    const S=[{n:'Cross-entropy (γ = 0, no α)',pts:ce,c:'#2e1065',d:'',w:2.6},{n:'Focal loss (γ = '+v.g+', without α)',pts:fl,c:'#8b5cf6',d:'7 5',w:2.6}];
+    leg.innerHTML=legendHtml(S);pl.innerHTML=chart({W:640,H:260,M:{l:52,r:16,t:16,b:40},x:[0,1],y:[0,4],xt:[0,.25,.5,.75,1],yt:[0,1,2,3,4],xlabel:'p_t (probability of the true class)',ylabel:'loss',label:'Cross-entropy and focal loss against p_t',series:S});
+    const e=.9,ce9=-Math.log(e),f9=Math.pow(1-e,v.g)*ce9;
+    ro.innerHTML='At an easy example p<sub>t</sub> = 0.9: cross-entropy <b>'+ce9.toFixed(4)+'</b>, focal factor (1 − p<sub>t</sub>)<sup>γ</sup> = <b>'+Math.pow(.1,v.g).toFixed(4)+'</b> → <b>'+f9.toFixed(4)+'</b> ('+(f9/ce9*100).toFixed(1)+'% of the cross-entropy). Curves are computed from the formula; α only rescales them (α<sub>t</sub> = α for objects, 1 − α for background).';}
+  draw();
+}
+function wToy(root){
+  const b=shell(root,'Toy detector: who dominates the loss?','Lecture setup: 100,000 confident background boxes (logit −5, target 0) and 10 missed objects (logit −1, target 1). Summed loss, split by group.');
+  const v={nb:100000,zb:-5,no:10,zo:-1,g:2,a:.25};const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  [['nb','Background boxes',1],['zb','Background logit',.5],['no','Object boxes',1],['zo','Object logit',.5],['g','γ',.5],['a','α',.05]].forEach(([k,l,s])=>numF(ctrl,l,v[k],x=>{v[k]=x;draw();},{step:s}));
+  const sig=z=>1/(1+Math.exp(-z)),sp=z=>Math.log1p(Math.exp(z));
+  function draw(){const ceB=v.nb*sp(v.zb),ceO=v.no*(sp(v.zo)-v.zo),pB=sig(v.zb),ptB=1-pB,ptO=sig(v.zo),flB=v.nb*(1-v.a)*Math.pow(1-ptB,v.g)*sp(v.zb),flO=v.no*v.a*Math.pow(1-ptO,v.g)*(sp(v.zo)-v.zo),s1=ceB/(ceB+ceO),s2=flB/(flB+flO);
+    out.innerHTML=bar('Cross-entropy: background',s1,1,pct(s1))+bar('Cross-entropy: objects',1-s1,1,pct(1-s1))+bar('Focal loss: background',s2,1,pct(s2))+bar('Focal loss: objects',1-s2,1,pct(1-s2));
+    ro.innerHTML='Background share of total loss — cross-entropy <b>'+pct(s1)+'</b>, focal loss <b>'+pct(s2)+'</b>'+(v.nb===100000&&v.zb===-5&&v.no===10&&v.zo===-1&&v.g===2&&v.a===.25?' (the lecture: 98.1% and 1.3%).':'.')+'<br>With cross-entropy the easy boxes dominate; with focal loss they nearly vanish and training focuses on the hard objects. (In RetinaNet the summed loss is divided by the number of positive boxes.)';}
+  draw();
+}
+function fillCode(){$$('[data-code]').forEach(el=>{el.textContent=CODE[el.dataset.code]||'';});}
+const W={ssd:wSsd,ssdloss:wSsdLoss,target:wTarget,rows:wRows,funnel:wFunnel,conv:wConv,thr:wThr,lat:wLat,deg:wDeg,compare:wCompare,focal:wFocal,toy:wToy};
+function init(){
+  $$('[data-fig]').forEach(el=>{el.innerHTML=el.dataset.fig.split(',').map(k=>FIGS[k]||'').join('');});
+  fillCode();
+  $$('[data-w]').forEach(el=>{const k=el.dataset.w;if(W[k])W[k](el);});
+  wToc();
+}
+const CODE={"ssd": "import numpy as np\nimport torch\nimport torchvision\nfrom torchvision.models.detection import ssd300_vgg16\nfrom torchvision.models.detection.image_list import ImageList\n\n# (grid size, default boxes per cell) for the six SSD300 detection layers\nlayers = [(38, 4), (19, 6), (10, 6), (5, 6), (3, 4), (1, 4)]\nper_layer = [g * g * k for g, k in layers]\nprint('Default boxes per layer:', per_layer, '| total:', sum(per_layer))\n\nssd = ssd300_vgg16(weights=None, weights_backbone=None)\nx = torch.zeros(1, 3, 300, 300)\nwith torch.no_grad():\n    feature_maps = list(ssd.backbone(x).values())\n    anchors = ssd.anchor_generator(ImageList(x, [(300, 300)]), feature_maps)\n\nprint('Feature map sizes:       ', [tuple(f.shape[-2:]) for f in feature_maps])\nprint('torchvision default boxes:', anchors[0].shape[0])", "target": "S, C = 4, 3\nobjects = [  # (class id, cx, cy, w, h) with all values in 0-1 relative to the image\n    (0, 0.30, 0.60, 0.20, 0.30),     # a car\n    (1, 0.80, 0.20, 0.05, 0.10),     # a traffic light\n]\n\ntarget = np.zeros((S, S, C + 5))\nfor cls, cx, cy, w, h in objects:\n    row, col = int(cy * S), int(cx * S)                     # the cell that contains the center\n    target[row, col, :4] = [cx * S - col, cy * S - row, w, h]   # center offset inside the cell, size of the image\n    target[row, col, 4] = 1                                 # objectness\n    target[row, col, 5 + cls] = 1                           # class\n\nprint('Target shape:', target.shape)\nfor r, c in zip(*np.nonzero(target[..., 4])):\n    print(f'cell (row {r}, col {c}):', np.round(target[r, c], 2))\nprint('Cells with no object are all zeros:', int((target[..., 4] == 0).sum()), 'of', S * S)", "setup": "import os\nimport urllib.request\n\nclassesFile = 'coco.names.txt'\n\n# Fallback: Download the file directly from the official YOLOv5 repository if missing\nif not os.path.exists(classesFile):\n    print(f\"'{classesFile}' not found. Downloading from official YOLOv5 repository...\")\n    url = 'https://raw.githubusercontent.com/ultralytics/yolov5/master/data/coco.yaml'\n    try:\n        # Let's fetch the class names directly from a clean raw list online\n        raw_url = 'https://raw.githubusercontent.com/amikelive/coco-labels/master/coco-labels-2014_2017.txt'\n        urllib.request.urlretrieve(raw_url, classesFile)\n        print(\"Download complete.\")\n    except Exception as e:\n        print(f\"Failed to download: {e}\")\n\nwith open(classesFile, 'rt') as f:\n    classes = f.read().rstrip('\\n').split('\\n')\n\nprint(dict(enumerate(classes)))\n\nimport cv2\n\n# input image width and height\nINPUT_WIDTH = 640\nINPUT_HEIGHT = 640\n\n# keep a box only if objectness x class score is at least this (YOLOv5's own default is 0.25)\nSCORE_THRESHOLD = 0.25\n\n# IoU above which NMS suppresses the lower-scoring box of the same class\nNMS_THRESHOLD = 0.45\n\n# classes relevant to driving. Set to None to keep all 80 COCO classes.\nTARGET_CLASSES = {'person', 'bicycle', 'car', 'motorbike', 'bus', 'truck', 'traffic light', 'stop sign',\n                  'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe'}\n\n# text parameters used for annotating labels on the image\nFONT_FACE = cv2.FONT_HERSHEY_SIMPLEX\nFONT_SCALE = 0.4\nTHICKNESS = 1\nBOX_COLOR = (0, 255, 255)\nFONT_COLOR = (0, 0, 0)", "forward": "def yolo_forward_pass(input_image, net):\n    \"\"\"Run the loaded YOLO model on one image and return its raw outputs.\"\"\"\n    # Build a 4D blob: scale pixels to 0-1, resize to 640x640 and swap BGR to RGB (the model expects RGB).\n    blob = cv2.dnn.blobFromImage(input_image, 1 / 255, (INPUT_WIDTH, INPUT_HEIGHT), [0, 0, 0], swapRB=True, crop=False)\n    net.setInput(blob)\n    return net.forward(net.getUnconnectedOutLayersNames())\n\n\nsample_names = ['1478732518231513348', '1478900224707428956', '1478898970726449449',\n                '1478895374457789828', '1479504796899191419', '1479498467969466999']\nsample_images = [f'{IMG_DIR}/{n}.jpg' for n in sample_names if os.path.exists(f'{IMG_DIR}/{n}.jpg')] or all_images[:6]\n\nnet = cv2.dnn.readNet('yolov5n.onnx')\nframe = cv2.imread(sample_images[0])\nraw = yolo_forward_pass(frame, net)[0]\nprint('Image shape   :', frame.shape)\nprint('Output shape  :', raw.shape)", "rows": "print('3 * (80^2 + 40^2 + 20^2) =', 3 * (80 ** 2 + 40 ** 2 + 20 ** 2))\n\npreds = raw[0]                                    # (25200, 85)\nboxes_cxcywh, objectness, class_scores = preds[:, :4], preds[:, 4], preds[:, 5:]\nprint('boxes:', boxes_cxcywh.shape, '| objectness:', objectness.shape, '| class scores:', class_scores.shape)\nprint('objectness range:', objectness.min().round(3), 'to', objectness.max().round(3), '(probabilities, not raw logits)')\nprint('typical box (cx, cy, w, h) in 640-px coordinates:', boxes_cxcywh[0].round(1))", "decode": "best_class = class_scores.argmax(axis=1)                              # most likely class of each row\nbest_class_score = class_scores[np.arange(len(preds)), best_class]\nfinal_score = objectness * best_class_score\n\nprint('Rows with objectness      >= 0.25:', int((objectness >= 0.25).sum()))\nprint('Rows with final score     >= 0.25:', int((final_score >= SCORE_THRESHOLD).sum()), 'of', len(preds))\n\nkeep = final_score >= SCORE_THRESHOLD\nif TARGET_CLASSES is not None:\n    target_ids = [i for i, name in enumerate(classes) if name in TARGET_CLASSES]\n    keep &= np.isin(best_class, target_ids)\n\nprint('Candidates kept:', int(keep.sum()))\nprint('Classes among them:', sorted({classes[i] for i in best_class[keep]}))\n\nimage_height, image_width = frame.shape[:2]\nx_factor, y_factor = image_width / INPUT_WIDTH, image_height / INPUT_HEIGHT\n\ncx, cy, w, h = boxes_cxcywh[keep].T\nboxes = np.stack([(cx - w / 2) * x_factor, (cy - h / 2) * y_factor, w * x_factor, h * y_factor], axis=1).astype(int)\nprint(boxes[:5])\n\nscores = final_score[keep]\nids = best_class[keep]\n\nselected = []\nfor c in np.unique(ids):\n    idx = np.where(ids == c)[0]\n    kept = cv2.dnn.NMSBoxes(boxes[idx].tolist(), scores[idx].tolist(), SCORE_THRESHOLD, NMS_THRESHOLD)\n    selected += idx[np.array(kept, dtype=int).flatten()].tolist()\n\nprint(f'Boxes before NMS: {len(boxes)}   after NMS: {len(selected)}')\nfor i in selected:\n    print(f'{classes[ids[i]]:>14} {scores[i]:.2f}  box {boxes[i].tolist()}')\n\ndef decode_detections(input_image, outputs, score_threshold=None, nms_threshold=NMS_THRESHOLD):\n    \"\"\"\n    Turn the raw model output into final detections (steps 3 to 6 above).\n    Returns boxes as [left, top, width, height] in the original image, with their scores and class ids.\n    \"\"\"\n    score_threshold = SCORE_THRESHOLD if score_threshold is None else score_threshold\n    preds = outputs[0][0]\n    best_class = preds[:, 5:].argmax(axis=1)\n    scores = preds[:, 4] * preds[np.arange(len(preds)), 5 + best_class]\n\n    keep = scores >= score_threshold\n    if TARGET_CLASSES is not None:\n        keep &= np.isin(best_class, [i for i, name in enumerate(classes) if name in TARGET_CLASSES])\n    if not keep.any():\n        return [], [], []\n\n    image_height, image_width = input_image.shape[:2]\n    xf, yf = image_width / INPUT_WIDTH, image_height / INPUT_HEIGHT\n    cx, cy, w, h = preds[keep, :4].T\n    boxes = np.stack([(cx - w / 2) * xf, (cy - h / 2) * yf, w * xf, h * yf], axis=1).astype(int)\n    scores, ids = scores[keep], best_class[keep]\n\n    selected = []\n    for c in np.unique(ids):\n        idx = np.where(ids == c)[0]\n        kept = cv2.dnn.NMSBoxes(boxes[idx].tolist(), scores[idx].tolist(), score_threshold, nms_threshold)\n        selected += idx[np.array(kept, dtype=int).flatten()].tolist()\n    return [boxes[i].tolist() for i in selected], [float(scores[i]) for i in selected], [int(ids[i]) for i in selected]\n\n\ndef draw_label(im, label, x, y):\n    \"\"\"Draw a text label on the image at the given location.\"\"\"\n    text_size = cv2.getTextSize(label, FONT_FACE, FONT_SCALE, THICKNESS)\n    dim, baseline = text_size[0], text_size[1]\n    cv2.rectangle(im, (x, y), (x + dim[0], y - (dim[1] + baseline)), (255, 255, 255), cv2.FILLED)      # white background\n    cv2.putText(im, label, (x, y - dim[1] + baseline), FONT_FACE, FONT_SCALE, FONT_COLOR, THICKNESS, cv2.LINE_AA)\n\n\ndef draw_detections(img, boxes, scores, class_ids):\n    \"\"\"Draw boxes with 'class:score' labels on the image (in place) and return it.\"\"\"\n    for (left, top, width, height), score, class_id in zip(boxes, scores, class_ids):\n        cv2.rectangle(img, (left, top), (left + width, top + height), BOX_COLOR, 2 * THICKNESS)\n        draw_label(img, '{}:{:.2f}'.format(classes[class_id], score), left, top)\n    return img\n\n\ndef post_process_outputs(input_image, outputs, score_threshold=None):\n    \"\"\"Decode the detections and draw them on the image.\"\"\"\n    return draw_detections(input_image, *decode_detections(input_image, outputs, score_threshold))\n\n\n# The functions should agree with the step-by-step result\nprint('Detections from decode_detections:', len(decode_detections(frame, [raw])[0]), '(step 6 gave', len(selected), ')')", "run": "latencies = []\n\nfor image_path in sample_images[:4]:\n    frame = cv2.imread(image_path)\n\n    outputs = yolo_forward_pass(frame, net)\n    pred_img = post_process_outputs(frame.copy(), outputs)\n\n    # getPerfProfile returns the overall time for inference (t) and the timings of each layer.\n    t, _ = net.getPerfProfile()\n    latency_ms = t * 1000.0 / cv2.getTickFrequency()\n    latencies.append(latency_ms)\n    cv2.putText(pred_img, 'Network time: %.2f ms' % latency_ms, (10, 20), FONT_FACE, FONT_SCALE, (255, 0, 50), THICKNESS, cv2.LINE_AA)\n\n    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 6))\n    ax1.imshow(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)); ax1.axis('off')\n    ax2.imshow(cv2.cvtColor(pred_img, cv2.COLOR_BGR2RGB)); ax2.axis('off')\n    plt.show()\n\nprint('Mean network time per image: %.1f ms (1000 ms = 1 second)' % np.mean(latencies))\n\nframes = [cv2.imread(p) for p in sample_images]\nraw_outputs = [yolo_forward_pass(f, net) for f in frames]       # run the network once, reuse the outputs\n\nfor thr in (0.1, 0.25, 0.5, 0.75):\n    counts = [len(decode_detections(f, out, score_threshold=thr)[0]) for f, out in zip(frames, raw_outputs)]\n    print(f'score threshold {thr}: detections per image {counts} | total {sum(counts)}')", "degrade": "def degrade(img, mode):\n    '''Simulate a hard driving condition on a BGR image.'''\n    if mode == 'night':\n        return (255 * (img / 255.0) ** 2.5 * 0.6).astype(np.uint8)              # darker, crushed shadows\n    if mode == 'fog':\n        return cv2.addWeighted(img, 0.45, np.full_like(img, 200), 0.55, 0)      # washed out, low contrast\n    if mode == 'blur':\n        return cv2.GaussianBlur(img, (0, 0), 6)                                  # defocus or motion blur\n    if mode == 'noise':\n        noise = np.random.default_rng(0).normal(0, 35, img.shape)\n        return np.clip(img + noise, 0, 255).astype(np.uint8)                     # sensor noise\n    raise ValueError(mode)\n\n\noriginal = cv2.imread(sample_images[0])\n\nfig, axes = plt.subplots(1, 5, figsize=(30, 5))\nfor ax, mode in zip(axes, ['original', 'night', 'fog', 'blur', 'noise']):\n    img = original if mode == 'original' else degrade(original, mode)\n    outputs = yolo_forward_pass(img, net)                       # one forward pass per image\n    n_detections = len(decode_detections(img, outputs)[0])\n    ax.imshow(cv2.cvtColor(post_process_outputs(img.copy(), outputs), cv2.COLOR_BGR2RGB))\n    ax.set_title(f'{mode}: {n_detections} detections')\n    ax.axis('off')\nplt.show()", "focal": "import torch\nimport torch.nn.functional as F\nfrom torchvision.ops import sigmoid_focal_loss\n\n\ndef focal_loss(logits, targets, alpha=0.25, gamma=2.0):\n    '''Binary focal loss, averaged over all elements. logits and targets (0 or 1) have the same shape.'''\n    p = torch.sigmoid(logits)\n    ce = F.binary_cross_entropy_with_logits(logits, targets, reduction='none')\n    p_t = p * targets + (1 - p) * (1 - targets)                      # probability of the true class\n    alpha_t = alpha * targets + (1 - alpha) * (1 - targets)\n    return (alpha_t * (1 - p_t) ** gamma * ce).mean()\n\n\nlogits = torch.randn(1000)\ntargets = (torch.rand(1000) > 0.9).float()\nprint('ours:', focal_loss(logits, targets).item(), '| torchvision:', sigmoid_focal_loss(logits, targets, reduction='mean').item())\n\neasy_background = torch.full((100000,), -5.0)       # confident \"no object\", target 0\nmissed_objects = torch.full((10,), -1.0)            # objects the model is unsure about, target 1\n\nfor name, loss_fn in [('cross-entropy', lambda z, y: F.binary_cross_entropy_with_logits(z, y, reduction='sum')),\n                      ('focal loss', lambda z, y: focal_loss(z, y) * len(z))]:\n    bg = loss_fn(easy_background, torch.zeros(100000)).item()\n    obj = loss_fn(missed_objects, torch.ones(10)).item()\n    print(f'{name:14s} background share of total loss: {100 * bg / (bg + obj):5.1f}%')"};
+init();
+
+})();
+</script>
+</body>
+</html>
